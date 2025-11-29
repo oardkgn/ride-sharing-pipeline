@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.env/
+
+# Spark temporary files
+spark-warehouse/
+metastore_db/
+
+# System files
+.DS_Store
+
+# Docker
+*.log
