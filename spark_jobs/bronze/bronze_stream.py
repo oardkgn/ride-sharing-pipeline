@@ -89,8 +89,8 @@ def main():
     )
 
     # 3️⃣ Write to Delta (Bronze)
-    bronze_path = "data/bronze/rides"
-    checkpoint_path = "checkpoints/bronze_rides"
+    bronze_path = "../data/bronze/rides"
+    checkpoint_path = "../checkpoints/bronze_rides"
 
     query = (
         parsed_df.writeStream.format("delta")

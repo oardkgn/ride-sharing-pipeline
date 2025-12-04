@@ -1,21 +1,21 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     col,
-    date_trunc,
     sum as spark_sum,
     avg as spark_avg,
     count as spark_count,
+    when,
 )
+
 
 def create_spark_session():
     """
-    Simple Spark session with Delta support for batch processing.
-    No Kafka needed here – we're just reading Silver from disk.
+    Spark session with Delta support for batch processing.
     """
     packages = "io.delta:delta-spark_2.13:4.0.0"
 
     spark = (
-        SparkSession.builder.appName("GoldHourlyRevenue")
+        SparkSession.builder.appName("GoldDriverStats")
         .config("spark.jars.packages", packages)
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
@@ -33,40 +33,40 @@ def main():
     spark = create_spark_session()
 
     silver_path = "../data/silver/rides_clean"
-    gold_path = "../data/gold/hourly_revenue"
+    gold_path = "../data/gold/driver_stats"
 
     print("📌 Reading Silver table...")
     df = spark.read.format("delta").load(silver_path)
 
-    # 1️⃣ Create an 'hour' column by truncating to hour
-    df_hourly = df.withColumn(
-        "event_hour", date_trunc("hour", col("created_at_ts"))
-    )
-
-    # 2️⃣ Aggregate metrics per hour
+    print("📌 Aggregating per driver...")
     agg = (
-        df_hourly.groupBy("event_hour")
+        df.groupBy("driver_id")
         .agg(
             spark_count("*").alias("total_rides"),
             spark_sum("price").alias("total_revenue"),
             spark_avg("price").alias("avg_price"),
+            spark_avg("distance_km").alias("avg_distance_km"),
+            spark_avg("ride_duration_minutes").alias(
+                "avg_ride_duration_minutes"
+            ),
             spark_sum(
-                (col("status") == "completed").cast("int")
+                when(col("status") == "completed", 1).otherwise(0)
             ).alias("completed_rides"),
-            spark_sum(
-                (col("status") == "requested").cast("int")
-            ).alias("requested_rides"),
         )
-        .orderBy("event_hour")
     )
 
-    print("📊 Sample of hourly metrics:")
+    # Add completion rate as a derived metric
+    agg = agg.withColumn(
+        "completion_rate", col("completed_rides") / col("total_rides")
+    )
+
+    print("📊 Sample driver stats:")
     agg.show(20, truncate=False)
 
-    print("📌 Writing Gold Delta table (hourly_revenue)...")
+    print("📌 Writing Gold Delta table (driver_stats)...")
     (
         agg.write.format("delta")
-        .mode("overwrite")   # snapshot of current Silver
+        .mode("overwrite")  # snapshot based on current Silver
         .save(gold_path)
     )
 

@@ -22,8 +22,8 @@ def create_spark_session():
 def main():
     spark = create_spark_session()
 
-    bronze_path = "data/bronze/rides"
-    silver_path = "data/silver/rides_clean"
+    bronze_path = "../data/bronze/rides"
+    silver_path = "../data/silver/rides_clean"
 
     print("📌 Reading Bronze table...")
     df = spark.read.format("delta").load(bronze_path)
