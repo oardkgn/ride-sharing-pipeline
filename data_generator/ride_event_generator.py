@@ -67,7 +67,7 @@ def main():
     while True:
         event = create_ride_event()
         producer.send(TOPIC, value=event)
-        print("EVENT:", event["ride_id"], event["status"], event["price"])
+        print("EVENT:", event["start_time"], event["status"], event["price"])
         time.sleep(1)  # 1 event/second → like a busy app
 
 
